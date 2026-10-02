@@ -1,0 +1,47 @@
+server:
+  port: 8080
+  # за Vite proxy redirect_uri и post-logout redirect должны строиться от адреса UI, а не gateway
+  forward-headers-strategy: framework
+
+invest:
+  gateway:
+    invest-api-uri: http://127.0.0.1:8081
+  keycloak:
+    issuer-uri: http://localhost:8180/realms/invest
+
+spring:
+  application:
+    name: invest-gateway
+  threads:
+    virtual:
+      enabled: true
+  security:
+    oauth2:
+      client:
+        registration:
+          keycloak:
+            client-id: invest-gateway
+            # dev-значение совпадает с keycloak/import/invest-realm.json, вне локального стенда задавать через env
+            client-secret: ${KEYCLOAK_CLIENT_SECRET:invest-gateway-dev-secret}
+            scope: openid, profile, email
+        provider:
+          keycloak:
+            issuer-uri: ${invest.keycloak.issuer-uri}
+  cloud:
+    gateway:
+      server:
+        webmvc:
+          routes:
+            # наружу открыты только облигации; maintenance-эндпоинты invest-api через gateway недоступны
+            - id: invest-api-bonds
+              uri: ${invest.gateway.invest-api-uri}
+              predicates:
+                - Path=/api/bonds/**
+              filters:
+                - RewritePath=/api/(?<segment>.*), /internal/rest/$\{segment}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
