@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.4.xsd">
+
+    <changeSet id="INVEST-001-create-coupon-table" author="d.v.kornilovich">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="coupon"/>
+            </not>
+        </preConditions>
+
+        <createTable tableName="coupon">
+            <column autoIncrement="true" name="id" type="bigserial">
+                <constraints primaryKey="true"/>
+            </column>
+            <column name="bond_id" type="bigint">
+                <constraints nullable="false" foreignKeyName="fk_coupon_bond_id" references="bond(id)"/>
+            </column>
+            <column name="ticker" type="text">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="uid" type="text">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="quantity_per_year" type="integer">
+                <constraints nullable="false"/>
+            </column>
+            <column name="is_fixed_coupon" type="boolean">
+                <constraints nullable="false"/>
+            </column>
+            <column name="interest" type="numeric(19,2)"/>
+            <column name="created_at" type="timestamp"/>
+            <column name="created_by" type="varchar(200)"/>
+            <column name="updated_at" type="timestamp"/>
+            <column name="updated_by" type="varchar(200)"/>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="INVEST-001-create-coupon-indexes" author="d.v.kornilovich">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <indexExists tableName="coupon" indexName="coupon_bond_id_uq_idx"/>
+            </not>
+        </preConditions>
+
+        <createIndex tableName="coupon" indexName="coupon_bond_id_uq_idx" unique="true">
+            <column name="bond_id"/>
+        </createIndex>
+    </changeSet>
+</databaseChangeLog>

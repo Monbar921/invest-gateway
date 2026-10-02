@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.4.xsd">
+
+    <changeSet id="INVEST-001-create-coupon-data-table" author="d.v.kornilovich">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="coupon_data"/>
+            </not>
+        </preConditions>
+
+        <createTable tableName="coupon_data">
+            <column autoIncrement="true" name="id" type="bigserial">
+                <constraints primaryKey="true"/>
+            </column>
+            <column name="coupon_id" type="bigint">
+                <constraints nullable="false" foreignKeyName="fk_coupon_data_coupon_id" references="coupon(id)"/>
+            </column>
+            <column name="uid" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="ticker" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="price" type="numeric(19,2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="currency" type="varchar2(3)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="fix_date" type="timestamp">
+                <constraints nullable="false"/>
+            </column>
+            <column name="payment_date" type="timestamp">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp"/>
+            <column name="created_by" type="varchar(200)"/>
+            <column name="updated_at" type="timestamp"/>
+            <column name="updated_by" type="varchar(200)"/>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="INVEST-001-create-coupon-data-indexes" author="d.v.kornilovich">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <indexExists tableName="coupon_data" indexName="coupon_data_coupon_id_idx"/>
+            </not>
+        </preConditions>
+
+        <createIndex tableName="coupon_data" indexName="coupon_data_coupon_id_idx">
+            <column name="coupon_id"/>
+        </createIndex>
+    </changeSet>
+</databaseChangeLog>

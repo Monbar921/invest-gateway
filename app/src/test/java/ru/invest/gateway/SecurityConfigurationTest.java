@@ -29,7 +29,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Keycloak в тесте не поднимается: регистрация клиента задана бином с явными URI,
  * поэтому автоконфигурация не ходит в discovery по issuer-uri.
  */
-@SpringBootTest(properties = "invest.gateway.invest-api-uri=http://127.0.0.1:1")
+@SpringBootTest
 @AutoConfigureMockMvc
 class SecurityConfigurationTest {
 
