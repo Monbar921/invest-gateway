@@ -4,7 +4,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.CsrfConfigurer;
 import org.springframework.security.oauth2.client.oidc.web.logout.OidcClientInitiatedLogoutSuccessHandler;
@@ -12,6 +11,8 @@ import org.springframework.security.oauth2.client.registration.ClientRegistratio
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
+import ru.invest.gateway.authorization.service.handler.LoggingAuthenticationFailureHandler;
+import ru.invest.gateway.authorization.service.handler.LoggingAuthenticationSuccessHandler;
 
 /**
  * BFF: gateway сам проходит OAuth2-логин в Keycloak и держит токены в HTTP-сессии.
@@ -23,7 +24,9 @@ public class SecurityConfiguration {
 
     @Bean
     public SecurityFilterChain securityFilterChain(final HttpSecurity http,
-                                                   final ClientRegistrationRepository clientRegistrationRepository) {
+                                                   final ClientRegistrationRepository clientRegistrationRepository,
+                                                   final LoggingAuthenticationSuccessHandler successHandler,
+                                                   final LoggingAuthenticationFailureHandler failureHandler) {
         // после logout Keycloak завершает свою сессию и возвращает пользователя на главную UI
         final var logoutSuccessHandler = getOidcClientInitiatedLogoutSuccessHandler(clientRegistrationRepository);
 
@@ -31,7 +34,9 @@ public class SecurityConfiguration {
                 .authorizeHttpRequests(requests -> requests
                         .requestMatchers("/actuator/health").permitAll()
                         .anyRequest().authenticated())
-                .oauth2Login(Customizer.withDefaults())
+                .oauth2Login(login -> login
+                        .successHandler(successHandler)
+                        .failureHandler(failureHandler))
                 .logout(logout -> logout.logoutSuccessHandler(logoutSuccessHandler))
                 // SPA читает токен из cookie XSRF-TOKEN и отправляет его в заголовке X-XSRF-TOKEN
                 .csrf(CsrfConfigurer::spa)
