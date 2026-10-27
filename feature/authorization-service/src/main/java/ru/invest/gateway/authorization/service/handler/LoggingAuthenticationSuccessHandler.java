@@ -25,7 +25,7 @@ public class LoggingAuthenticationSuccessHandler extends SavedRequestAwareAuthen
         super.onAuthenticationSuccess(request, response, authentication);
     }
 
-    private static String resolveUsername(final Authentication authentication) {
+    private String resolveUsername(final Authentication authentication) {
         if (authentication.getPrincipal() instanceof OidcUser oidcUser && oidcUser.getPreferredUsername() != null) {
             return oidcUser.getPreferredUsername();
         }

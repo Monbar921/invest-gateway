@@ -47,7 +47,7 @@ public class SecurityConfiguration {
         return http.build();
     }
 
-    private static OidcClientInitiatedLogoutSuccessHandler getOidcClientInitiatedLogoutSuccessHandler(
+    private OidcClientInitiatedLogoutSuccessHandler getOidcClientInitiatedLogoutSuccessHandler(
             final ClientRegistrationRepository clientRegistrationRepository) {
         final var logoutSuccessHandler = new OidcClientInitiatedLogoutSuccessHandler(clientRegistrationRepository);
         logoutSuccessHandler.setPostLogoutRedirectUri("{baseUrl}/");
