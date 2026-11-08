@@ -94,4 +94,17 @@ class SecurityConfigurationTest {
                 .hasRootCauseInstanceOf(ClosedChannelException.class)
                 .hasMessageContaining("http://127.0.0.1:1/internal/rest/bonds/all/page");
     }
+
+    @Test
+    void alertsAreRoutedToInvestApi() {
+        assertThatThrownBy(() -> mockMvc.perform(get("/api/alerts/telegram").with(oauth2Login())))
+                .hasRootCauseInstanceOf(ClosedChannelException.class)
+                .hasMessageContaining("http://127.0.0.1:1/internal/rest/alerts/telegram");
+    }
+
+    @Test
+    void alertsWithoutSessionReturnUnauthorized() throws Exception {
+        mockMvc.perform(get("/api/alerts/telegram"))
+                .andExpect(status().isUnauthorized());
+    }
 }
