@@ -46,3 +46,4 @@ build/
 k8s/secret.yaml
 
 local_config
+.openidea

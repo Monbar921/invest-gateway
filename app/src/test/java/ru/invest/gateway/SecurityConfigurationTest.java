@@ -107,4 +107,17 @@ class SecurityConfigurationTest {
         mockMvc.perform(get("/api/alerts/telegram"))
                 .andExpect(status().isUnauthorized());
     }
+
+    @Test
+    void portfolioIsRoutedToInvestApi() {
+        assertThatThrownBy(() -> mockMvc.perform(get("/api/portfolio").with(oauth2Login())))
+                .hasRootCauseInstanceOf(ClosedChannelException.class)
+                .hasMessageContaining("http://127.0.0.1:1/internal/rest/portfolio");
+    }
+
+    @Test
+    void portfolioWithoutSessionReturnsUnauthorized() throws Exception {
+        mockMvc.perform(get("/api/portfolio"))
+                .andExpect(status().isUnauthorized());
+    }
 }

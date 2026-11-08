@@ -31,9 +31,10 @@ Vite proxy, на стенде - ingress.
 | `POST /logout`                   | закрывает сессию, отвечает `202` и адресом выхода из Keycloak в `Location` |
 | `/api/bonds/**`                  | проксируется в invest-api на `/internal/rest/bonds/**` (`RewritePath`)    |
 | `/api/alerts/**`                 | то же для уведомлений: `/internal/rest/alerts/**` (подключение Telegram)  |
+| `/api/portfolio/**`              | то же для портфеля: `/internal/rest/portfolio/**`                         |
 | `/actuator/health`               | без авторизации                                                           |
 
-Наружу открыты облигации и уведомления: maintenance-эндпоинты invest-api (`/internal/rest/maintenance/**`) через gateway
+Наружу открыты облигации, уведомления и портфель: maintenance-эндпоинты invest-api (`/internal/rest/maintenance/**`) через gateway
 недоступны.
 
 ## Безопасность (`feature/authorization-service`)

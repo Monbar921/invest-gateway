@@ -21,6 +21,7 @@ Keycloak и invest-api для тестов не нужны.
 | `logoutReturnsLocationInsteadOfRedirect`   | logout отвечает `202` с адресом выхода в `Location`   |
 | `authenticatedApiRequestIsRoutedToInvestApi` | `/api/bonds/**` с сессией уходит в invest-api на `/internal/rest/bonds/**` |
 | `alertsAreRoutedToInvestApi`, `alertsWithoutSessionReturnUnauthorized` | `/api/alerts/**` с сессией уходит на `/internal/rest/alerts/**`, без сессии - `401` |
+| `portfolioIsRoutedToInvestApi`, `portfolioWithoutSessionReturnsUnauthorized` | `/api/portfolio/**` с сессией уходит на `/internal/rest/portfolio/**`, без сессии - `401` |
 | `UserIdHeaderFilterTest`                   | `X-User-Id` = `sub` OIDC-пользователя; поддельный заголовок из браузера удаляется, у анонима заголовка нет |
 
 Новое правило в `SecurityConfiguration` или новый маршрут - новый тест здесь.
