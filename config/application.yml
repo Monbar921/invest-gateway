@@ -6,6 +6,13 @@ server:
 invest:
   gateway:
     invest-api-uri: http://127.0.0.1:8081
+    # публичный режим: чтение облигаций без входа; уведомления и портфель - только с сессией
+    public-access:
+      enabled: true
+      # анонимные запросы к /api/** с одного IP: запас и скорость пополнения в минуту (0 - без ограничения)
+      rate-limit:
+        requests-per-minute: 120
+        max-clients: 10000
   keycloak:
     issuer-uri: http://localhost:8180/realms/invest
 

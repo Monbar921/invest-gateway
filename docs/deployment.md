@@ -31,8 +31,15 @@ mvn spring-boot:run
 | `invest.gateway.invest-api-uri` / `INVEST_GATEWAY_INVEST_API_URI` | куда проксировать `/api/bonds/**` | `http://127.0.0.1:8081`       |
 | `invest.keycloak.issuer-uri` / `INVEST_KEYCLOAK_ISSUER_URI` | issuer realm                         | `http://localhost:8180/realms/invest` |
 | `KEYCLOAK_CLIENT_SECRET`                                 | секрет клиента `invest-gateway`         | dev-значение `invest-gateway-dev-secret` |
+| `invest.gateway.public-access.enabled` / `INVEST_GATEWAY_PUBLIC_ACCESS_ENABLED` | чтение облигаций без входа | `true` |
+| `invest.gateway.public-access.rate-limit.requests-per-minute` | анонимных запросов к `/api/**` в минуту с одного IP, `0` - без лимита | `120` |
+| `invest.gateway.public-access.rate-limit.max-clients`    | сколько IP лимитер держит в памяти      | `10000` |
 
 Issuer должен совпадать с адресом, по которому Keycloak видит браузер: Spring проверяет `iss` в токене.
+
+Публичный режим на открытом адресе включать после проверки условий источников данных (решение 0.1 в
+[дорожной карте](../../invest-api/docs/roadmap.md)). Лимит анонимных запросов считает IP по `X-Forwarded-For`:
+ingress перед gateway должен выставлять этот заголовок сам, не доверяя присланному клиентом.
 
 ## Стенд в k3d
 

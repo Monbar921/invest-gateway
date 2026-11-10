@@ -9,12 +9,13 @@ Keycloak и invest-api для тестов не нужны.
 ## Устройство
 
 `app/src/test/java/ru/invest/gateway/SecurityConfigurationTest` - `@SpringBootTest` с заглушкой Keycloak
-(`KeycloakStubConfiguration`: регистрация клиента без похода за OIDC discovery), конфиг -
-`app/src/test/resources/application.yml`.
+(`KeycloakStubConfiguration`: регистрация клиента без похода за OIDC discovery, подключается `@Import`), конфиг -
+`app/src/test/resources/application.yml` (он в `.gitignore` - в репозитории его нет). Лимит анонимных запросов в
+`SecurityConfigurationTest` выключен (`requests-per-minute=0` в `@SpringBootTest`): все тесты шлют запросы с одного
+адреса; лимит проверяет `AnonymousRateLimitTest` со своим значением.
 
 | Тест                                       | Что проверяет                                         |
 | ------------------------------------------ | ----------------------------------------------------- |
-| `apiWithoutSessionReturnsUnauthorized`     | `/api/**` без сессии - `401`, а не редирект           |
 | `pageWithoutSessionRedirectsToLogin`       | страницы без сессии - редирект на логин               |
 | `healthIsPublic`                           | `/actuator/health` без авторизации                    |
 | `postWithoutCsrfTokenIsForbidden`          | изменяющий запрос без `X-XSRF-TOKEN` - `403`          |
@@ -22,6 +23,16 @@ Keycloak и invest-api для тестов не нужны.
 | `authenticatedApiRequestIsRoutedToInvestApi` | `/api/bonds/**` с сессией уходит в invest-api на `/internal/rest/bonds/**` |
 | `alertsAreRoutedToInvestApi`, `alertsWithoutSessionReturnUnauthorized` | `/api/alerts/**` с сессией уходит на `/internal/rest/alerts/**`, без сессии - `401` |
 | `portfolioIsRoutedToInvestApi`, `portfolioWithoutSessionReturnsUnauthorized` | `/api/portfolio/**` с сессией уходит на `/internal/rest/portfolio/**`, без сессии - `401` |
+| `bondReadWithoutSessionIsRoutedToInvestApi`, `bondPageAndCalculationWithoutSessionAreRoutedToInvestApi` | публичный режим: чтение облигаций и POST страницы и расчёта без сессии уходят в invest-api |
+| `anonymousPostWithoutCsrfTokenIsForbidden`, `csrfCookieIsIssuedWithoutSession` | анонимный POST без `X-XSRF-TOKEN` - `403`; cookie `XSRF-TOKEN` выдаётся без сессии |
+| `errorDispatchOfGuestKeepsOriginalStatus`  | error dispatch у гостя отдаёт исходный статус (`403`), а не `401` |
+| `otherBondPostsStillRequireLogin`          | другие POST под `/api/bonds` без сессии - `401`        |
+| `sessionOfGuest`, `sessionOfLoggedInUser`  | `/api/session` у гостя и вошедшего                    |
+| `loginRemembersReturnPath`, `loginIgnoresForeignReturnAddress` | `returnTo` сохраняется в сессии, чужой адрес (`//host`) - нет |
+| `LoginReturnTest`                          | какие `returnTo` допустимы; после входа - редирект на него один раз, без него - на `/` |
+| `AnonymousRateLimiterTest`                 | token bucket: всплеск до лимита, пополнение, `Retry-After`, `0` - без лимита, память при множестве IP |
+| `AnonymousRateLimitTest`                   | `429` сверх лимита по IP, у другого IP свой запас, вошедший и не-`/api` - без лимита |
+| `PublicAccessDisabledTest`                 | `public-access.enabled=false`: облигации без сессии - `401`, `/api/session` открыт |
 | `UserIdHeaderFilterTest`                   | `X-User-Id` = `sub` OIDC-пользователя; поддельный заголовок из браузера удаляется, у анонима заголовка нет |
 
 Новое правило в `SecurityConfiguration` или новый маршрут - новый тест здесь.

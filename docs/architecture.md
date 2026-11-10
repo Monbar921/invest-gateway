@@ -26,12 +26,13 @@ Vite proxy, на стенде - ingress.
 
 | Путь                             | Что                                                                       |
 | -------------------------------- | ------------------------------------------------------------------------- |
-| `/oauth2/authorization/keycloak` | старт логина, после входа - редирект на сохранённую страницу или `/`      |
+| `/oauth2/authorization/keycloak` | старт логина; `?returnTo=<путь>` - куда вернуть после входа, иначе сохранённая страница или `/` |
 | `/login/oauth2/code/keycloak`    | callback от Keycloak                                                      |
 | `POST /logout`                   | закрывает сессию, отвечает `202` и адресом выхода из Keycloak в `Location` |
-| `/api/bonds/**`                  | проксируется в invest-api на `/internal/rest/bonds/**` (`RewritePath`)    |
+| `/api/bonds/**`                  | проксируется в invest-api на `/internal/rest/bonds/**` (`RewritePath`); чтение - без входа |
 | `/api/alerts/**`                 | то же для уведомлений: `/internal/rest/alerts/**` (подключение Telegram)  |
 | `/api/portfolio/**`              | то же для портфеля: `/internal/rest/portfolio/**`                         |
+| `GET /api/session`               | состояние входа для UI: `{authenticated, username}`, без авторизации, всегда `200` |
 | `/actuator/health`               | без авторизации                                                           |
 
 Наружу открыты облигации, уведомления и портфель: maintenance-эндпоинты invest-api (`/internal/rest/maintenance/**`) через gateway
@@ -41,11 +42,19 @@ Vite proxy, на стенде - ingress.
 
 `SecurityConfiguration`:
 
-- всё, кроме `/actuator/health`, требует аутентификации;
+- без входа открыты `/actuator/health`, `GET /api/session` и, в публичном режиме (`invest.gateway.public-access.enabled`,
+  по умолчанию включён), чтение облигаций: `GET`/`HEAD /api/bonds/**`, `POST /api/bonds/*/page` и
+  `POST /api/bonds/*/calculation` (POST - чтение с фильтрами в теле; открыты поимённо, чтобы будущий изменяющий POST не
+  стал публичным сам собой). Всё остальное, в том числе `/api/alerts/**` и `/api/portfolio/**`, требует аутентификации.
+  Error dispatch (`/error` после `sendError`) открыт - иначе гость вместо `403`/`404` получал бы `401`.
+  Подробности и решения - [INVEST-001-public-mode](../../invest-api/docs/features/INVEST-001-public-mode/);
 - без сессии `/api/**` отвечает `401` (fetch из UI должен получить статус, а не HTML логина Keycloak),
   остальные страницы - редиректом на логин;
-- CSRF в режиме SPA: gateway ставит cookie `XSRF-TOKEN`, изменяющие запросы возвращают её значение в заголовке
-  `X-XSRF-TOKEN`;
+- CSRF в режиме SPA: gateway ставит cookie `XSRF-TOKEN` (и без сессии), изменяющие запросы - в том числе анонимные
+  POST облигаций - возвращают её значение в заголовке `X-XSRF-TOKEN`;
+- возврат после входа: `LoginReturnFilter` кладёт в сессию `returnTo` из запроса `/oauth2/authorization/keycloak`
+  (только путь своего origin - `/...`, не `//host`; иначе игнорируется, защита от open redirect),
+  `LoggingAuthenticationSuccessHandler` после входа ведёт туда;
 - logout - OIDC RP-initiated: Keycloak тоже закрывает сессию и возвращает на `{baseUrl}/`. UI выходит через fetch,
   а fetch не может пройти редирект на другой origin, поэтому адрес выхода отдаётся в `Location` с кодом `202`,
   браузер переходит туда сам.
@@ -54,6 +63,12 @@ Vite proxy, на стенде - ingress.
 заголовком `X-User-Id` - `sub` из OIDC-сессии Keycloak. Заголовок `X-User-Id` из браузера удаляется всегда, иначе его
 можно было бы подделать; без входа заголовка нет. invest-api своей авторизации не имеет и доверяет этому заголовку,
 поэтому сам он доступен только через gateway.
+
+`AnonymousRateLimitFilter` (после `UserIdHeaderFilter`) ограничивает анонимные запросы к `/api/**`: token bucket на IP,
+`invest.gateway.public-access.rate-limit.requests-per-minute` (по умолчанию 120) запросов в запасе с пополнением с той
+же скоростью; сверх - `429` с `Retry-After` и ProblemDetail. Вошедших не ограничивает. IP берётся из
+`X-Forwarded-For` (через `ForwardedHeaderFilter`), поэтому прокси перед gateway должен выставлять этот заголовок сам.
+Состояние в памяти - лимит на каждую реплику отдельно.
 
 `LoggingAuthenticationSuccessHandler` / `LoggingAuthenticationFailureHandler` пишут в лог успешные и неудачные входы
 (пользователь, IP, причина).
@@ -69,6 +84,6 @@ ingress. Каждый новый адрес UI нужно добавить в re
 | Модуль                           | Что                                              |
 | -------------------------------- | ------------------------------------------------ |
 | `app`                            | `InvestGatewayApplication`, тесты                |
-| `feature/authorization-service`  | `SecurityConfiguration`, обработчики логина, `UserIdHeaderFilter` |
+| `feature/authorization-service`  | `SecurityConfiguration`, обработчики логина, `UserIdHeaderFilter`, `LoginReturnFilter`, `AnonymousRateLimitFilter`, `SessionController` |
 
 Маршруты описаны в `config/application.yml` (`spring.cloud.gateway.server.webmvc.routes`), кода для них нет.
