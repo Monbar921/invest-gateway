@@ -16,6 +16,11 @@
             <artifactId>authorization-service</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>ru.invest.gateway</groupId>
+            <artifactId>seo-service</artifactId>
+            <version>${project.version}</version>
+        </dependency>
 
         <dependency>
             <groupId>org.springframework.boot</groupId>

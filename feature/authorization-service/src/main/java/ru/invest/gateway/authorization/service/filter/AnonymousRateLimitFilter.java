@@ -11,12 +11,17 @@ import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
+import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
+import ru.invest.gateway.authorization.service.config.SecurityConfiguration;
 
 import java.io.IOException;
+import java.util.List;
 
 /**
- * Ограничивает частоту анонимных запросов к {@code /api/**} по IP - защита публичного режима от выкачивания данных.
+ * Ограничивает частоту анонимных запросов к {@code /api/**} и к SEO-страницам по IP - защита публичного режима от
+ * выкачивания данных: SEO-страница облигации содержит те же цену и доходность, что и API.
  * Вошедших пользователей не ограничивает. Сверх лимита - {@code 429} с {@code Retry-After} и ProblemDetail.
  * <p>
  * Стоит после цепочки Spring Security (пользователь из сессии уже известен). IP - {@code getRemoteAddr()}: за прокси
@@ -26,6 +31,9 @@ import java.io.IOException;
 @Slf4j
 public class AnonymousRateLimitFilter extends OncePerRequestFilter {
     private static final String API_PREFIX = "/api/";
+    private static final List<RequestMatcher> PUBLIC_PAGES = SecurityConfiguration.PUBLIC_PAGES.stream()
+            .map(pattern -> (RequestMatcher) PathPatternRequestMatcher.pathPattern(pattern))
+            .toList();
     private static final String TOO_MANY_REQUESTS_BODY = """
             {"type":"about:blank","title":"Too Many Requests","status":429,\
             "detail":"Слишком много запросов без входа. Подождите немного или войдите."}""";
@@ -38,7 +46,7 @@ public class AnonymousRateLimitFilter extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(final HttpServletRequest request) {
-        return !request.getRequestURI().startsWith(API_PREFIX);
+        return !request.getRequestURI().startsWith(API_PREFIX) && !isPublicPage(request);
     }
 
     @Override
@@ -60,6 +68,10 @@ public class AnonymousRateLimitFilter extends OncePerRequestFilter {
         response.setContentType(MediaType.APPLICATION_PROBLEM_JSON_VALUE);
         response.setCharacterEncoding("UTF-8");
         response.getWriter().write(TOO_MANY_REQUESTS_BODY);
+    }
+
+    private static boolean isPublicPage(final HttpServletRequest request) {
+        return PUBLIC_PAGES.stream().anyMatch(matcher -> matcher.matches(request));
     }
 
     private static boolean isAuthenticated() {

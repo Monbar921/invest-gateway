@@ -9,10 +9,19 @@ invest:
     # публичный режим: чтение облигаций без входа; уведомления и портфель - только с сессией
     public-access:
       enabled: true
-      # анонимные запросы к /api/** с одного IP: запас и скорость пополнения в минуту (0 - без ограничения)
+      # анонимные запросы к /api/** и к SEO-страницам с одного IP: запас и скорость пополнения в минуту (0 - без ограничения)
       rate-limit:
         requests-per-minute: 120
         max-clients: 10000
+    # SEO-страницы (/bonds, /bonds/{ticker}, /issuers/{id}, /collections/{slug}, sitemap.xml, robots.txt):
+    # index.html UI с метаданными и готовым содержимым. Работают только вместе с public-access
+    seo:
+      enabled: true
+      # адрес сайта для canonical, og:url и sitemap; не задан - из запроса (X-Forwarded-*)
+      # public-url: https://bonds.example
+      # откуда брать index.html собранного UI: Vite в dev, сервис nginx UI на стенде
+      ui-url: http://127.0.0.1:5173
+      template-ttl: 1m
   keycloak:
     issuer-uri: http://localhost:8180/realms/invest
 

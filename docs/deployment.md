@@ -34,12 +34,20 @@ mvn spring-boot:run
 | `invest.gateway.public-access.enabled` / `INVEST_GATEWAY_PUBLIC_ACCESS_ENABLED` | чтение облигаций без входа | `true` |
 | `invest.gateway.public-access.rate-limit.requests-per-minute` | анонимных запросов к `/api/**` в минуту с одного IP, `0` - без лимита | `120` |
 | `invest.gateway.public-access.rate-limit.max-clients`    | сколько IP лимитер держит в памяти      | `10000` |
+| `invest.gateway.seo.enabled`                             | SEO-страницы, `sitemap.xml`, `robots.txt` (только вместе с `public-access`) | `true` |
+| `invest.gateway.seo.public-url`                          | адрес сайта для canonical, `og:url`, sitemap; пусто - из запроса (`X-Forwarded-*`) | пусто |
+| `invest.gateway.seo.ui-url`                              | откуда брать `index.html` UI: Vite в dev, nginx UI на стенде | `http://127.0.0.1:5173` |
+| `invest.gateway.seo.template-ttl`                        | сколько держать `index.html` в памяти   | `1m` |
+| `invest.gateway.seo.site-name`, `invest.gateway.seo.timeout` | название сайта в title; таймаут запросов к invest-api и UI | `Облигации`, `5s` |
 
 Issuer должен совпадать с адресом, по которому Keycloak видит браузер: Spring проверяет `iss` в токене.
 
 Публичный режим на открытом адресе включать после проверки условий источников данных (решение 0.1 в
 [дорожной карте](../../invest-api/docs/roadmap.md)). Лимит анонимных запросов считает IP по `X-Forwarded-For`:
 ingress перед gateway должен выставлять этот заголовок сам, не доверяя присланному клиентом.
+
+SEO-страницы в dev: Vite отдаёт SPA сам, страницы gateway смотрятся напрямую - `curl http://127.0.0.1:8082/bonds/<тикер>`
+(gateway возьмёт `index.html` у Vite на `:5173`). На стенде ingress отправляет пути SEO-страниц в gateway.
 
 ## Стенд в k3d
 

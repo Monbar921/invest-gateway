@@ -13,5 +13,6 @@
 
     <modules>
         <module>authorization-service</module>
+        <module>seo-service</module>
     </modules>
 </project>

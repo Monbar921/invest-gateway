@@ -33,6 +33,8 @@ Vite proxy, на стенде - ingress.
 | `/api/alerts/**`                 | то же для уведомлений: `/internal/rest/alerts/**` (подключение Telegram)  |
 | `/api/portfolio/**`              | то же для портфеля: `/internal/rest/portfolio/**`                         |
 | `GET /api/session`               | состояние входа для UI: `{authenticated, username}`, без авторизации, всегда `200` |
+| `GET /bonds`, `/bonds/{ticker}`, `/issuers/{id}`, `/collections/{slug}` | SEO-страницы: `index.html` UI с метаданными и готовым содержимым (см. ниже); без входа в публичном режиме |
+| `GET /sitemap.xml`, `GET /robots.txt` | sitemap всех облигаций, эмитентов и подборок; robots с адресом sitemap |
 | `/actuator/health`               | без авторизации                                                           |
 
 Наружу открыты облигации, уведомления и портфель: maintenance-эндпоинты invest-api (`/internal/rest/maintenance/**`) через gateway
@@ -70,6 +72,10 @@ Vite proxy, на стенде - ingress.
 `X-Forwarded-For` (через `ForwardedHeaderFilter`), поэтому прокси перед gateway должен выставлять этот заголовок сам.
 Состояние в памяти - лимит на каждую реплику отдельно.
 
+Пути SEO-страниц (`SecurityConfiguration.PUBLIC_PAGES`: `/bonds`, `/bonds/*`, `/issuers/*`, `/collections/*`,
+`/sitemap.xml`, `/robots.txt`) открыты для `GET`/`HEAD` вместе с чтением облигаций и входят в тот же лимит анонимных
+запросов: SEO-страница показывает те же цену и доходность, что API.
+
 `LoggingAuthenticationSuccessHandler` / `LoggingAuthenticationFailureHandler` пишут в лог успешные и неудачные входы
 (пользователь, IP, причина).
 
@@ -79,11 +85,31 @@ Vite proxy, на стенде - ingress.
 браузер (по `X-Forwarded-*`), а не от адреса gateway. За Vite proxy логин возвращает на `:5173`, на стенде - на адрес
 ingress. Каждый новый адрес UI нужно добавить в redirect URIs клиента `invest-gateway` в Keycloak.
 
+## SEO-страницы (`feature/seo-service`)
+
+Поисковик и ссылка получают готовый HTML, а не пустой SPA
+([INVEST-001-seo-pages](../../invest-api/docs/features/INVEST-001-seo-pages/design.md)):
+
+- `SeoPageController` берёт `index.html` собранного UI (`UiTemplateProvider`, `invest.gateway.seo.ui-url`, держится
+  `template-ttl`; UI не ответил - последний полученный или минимальная оболочка) и данные из invest-api
+  (`InvestApiSeoClient` - RestClient на `/internal/rest/bonds/...`, ответы - свои record'ы с игнорированием
+  неизвестных полей, зависимости от модулей invest-api нет);
+- `HtmlPageRenderer` заменяет title и description, добавляет canonical, `og:*`, `robots` и кладёт содержимое
+  (`SeoPageBuilder`: заголовок, цена, доходность, купон, даты, эмитент, выпуски, новости) в `<div id="root">`;
+  всё из invest-api экранируется. React при загрузке заменяет содержимое своим;
+- неизвестная облигация, эмитент или подборка - `404` с `noindex`; invest-api не ответил - `503` с `Retry-After` и
+  оболочкой без содержимого (SPA работает, поисковик не запоминает пустую страницу);
+- `SitemapController`: `sitemap.xml` по `GET /internal/rest/bonds/sitemap`, `robots.txt` (личные разделы закрыты,
+  `/api/bonds` открыт - он нужен поисковику, исполняющему SPA);
+- абсолютные адреса - от `invest.gateway.seo.public-url`, если не задан - от запроса (`X-Forwarded-*`);
+- включается `invest.gateway.seo.enabled` и только вместе с `public-access.enabled`.
+
 ## Модули
 
 | Модуль                           | Что                                              |
 | -------------------------------- | ------------------------------------------------ |
 | `app`                            | `InvestGatewayApplication`, тесты                |
 | `feature/authorization-service`  | `SecurityConfiguration`, обработчики логина, `UserIdHeaderFilter`, `LoginReturnFilter`, `AnonymousRateLimitFilter`, `SessionController` |
+| `feature/seo-service`            | SEO-страницы, `sitemap.xml`, `robots.txt`: `SeoPageController`, `SitemapController`, `UiTemplateProvider`, `HtmlPageRenderer`, `SeoPageBuilder`, `InvestApiSeoClient` |
 
 Маршруты описаны в `config/application.yml` (`spring.cloud.gateway.server.webmvc.routes`), кода для них нет.

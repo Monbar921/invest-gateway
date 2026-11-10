@@ -20,6 +20,8 @@ import ru.invest.gateway.authorization.service.filter.LoginReturnFilter;
 import ru.invest.gateway.authorization.service.handler.LoggingAuthenticationFailureHandler;
 import ru.invest.gateway.authorization.service.handler.LoggingAuthenticationSuccessHandler;
 
+import java.util.List;
+
 /**
  * BFF: gateway сам проходит OAuth2-логин в Keycloak и держит токены в HTTP-сессии.
  * Браузер получает только session cookie, downstream-сервисы токенов не видят.
@@ -30,6 +32,12 @@ import ru.invest.gateway.authorization.service.handler.LoggingAuthenticationSucc
 @Configuration
 @EnableConfigurationProperties(PublicAccessProperties.class)
 public class SecurityConfiguration {
+    /**
+     * Страницы для поисковиков (модуль seo-service): готовый HTML облигации, эмитента, подборки и списка, sitemap и
+     * robots. Открыты вместе с чтением облигаций - показывают те же данные.
+     */
+    public static final List<String> PUBLIC_PAGES = List.of(
+            "/bonds", "/bonds/*", "/issuers/*", "/collections/*", "/sitemap.xml", "/robots.txt");
     private static final String API_PATTERN = "/api/**";
     private static final String BONDS_PATTERN = "/api/bonds/**";
     /**
@@ -56,6 +64,8 @@ public class SecurityConfiguration {
                     if (publicAccess.enabled()) {
                         requests.requestMatchers(HttpMethod.GET, BONDS_PATTERN).permitAll()
                                 .requestMatchers(HttpMethod.HEAD, BONDS_PATTERN).permitAll()
+                                .requestMatchers(HttpMethod.GET, PUBLIC_PAGES.toArray(String[]::new)).permitAll()
+                                .requestMatchers(HttpMethod.HEAD, PUBLIC_PAGES.toArray(String[]::new)).permitAll()
                                 .requestMatchers(HttpMethod.POST, PUBLIC_BOND_POSTS).permitAll();
                     }
                     requests.anyRequest().authenticated();

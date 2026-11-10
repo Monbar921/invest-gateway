@@ -33,6 +33,9 @@ Keycloak и invest-api для тестов не нужны.
 | `AnonymousRateLimiterTest`                 | token bucket: всплеск до лимита, пополнение, `Retry-After`, `0` - без лимита, память при множестве IP |
 | `AnonymousRateLimitTest`                   | `429` сверх лимита по IP, у другого IP свой запас, вошедший и не-`/api` - без лимита |
 | `PublicAccessDisabledTest`                 | `public-access.enabled=false`: облигации без сессии - `401`, `/api/session` открыт |
+| `SeoPagesTest`                             | SEO-страницы с HTTP-заглушкой invest-api и UI: метаданные и содержимое облигации, экранирование, `404` с `noindex`, `503` при ошибке invest-api, без новостей, последняя оболочка при недоступном UI, эмитент, подборка, список (canonical без query), вошедший, `sitemap.xml`, `robots.txt`, другие страницы - под логином |
+| `UiTemplateProviderTest`                   | оболочка UI: кэш на ttl, последняя полученная при ошибке, минимальная без единой, ответ без `#root` не принимается |
+| `AnonymousRateLimitTest.seoPagesShareTheLimit`, `PublicAccessDisabledTest.seoPagesRequireLogin` | SEO-страницы в общем лимите; без публичного режима - под логином |
 | `UserIdHeaderFilterTest`                   | `X-User-Id` = `sub` OIDC-пользователя; поддельный заголовок из браузера удаляется, у анонима заголовка нет |
 
 Новое правило в `SecurityConfiguration` или новый маршрут - новый тест здесь.

@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -25,6 +26,14 @@ class PublicAccessDisabledTest {
     @Test
     void bondsWithoutSessionReturnUnauthorized() throws Exception {
         mockMvc.perform(get("/api/bonds/RU000A0JX0J2"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void seoPagesRequireLogin() throws Exception {
+        mockMvc.perform(get("/bonds/RU000A0JX0J2").accept(MediaType.TEXT_HTML))
+                .andExpect(status().is3xxRedirection());
+        mockMvc.perform(get("/sitemap.xml"))
                 .andExpect(status().isUnauthorized());
     }
 

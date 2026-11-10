@@ -44,6 +44,15 @@ class AnonymousRateLimitTest {
     }
 
     @Test
+    void seoPagesShareTheLimit() throws Exception {
+        // SEO-страница облигации показывает те же данные, что API, - выкачивать через неё так же нельзя
+        mockMvc.perform(get("/robots.txt").with(ip("10.0.0.5"))).andExpect(status().isOk());
+        mockMvc.perform(get("/api/session").with(ip("10.0.0.5"))).andExpect(status().isOk());
+
+        mockMvc.perform(get("/robots.txt").with(ip("10.0.0.5"))).andExpect(status().isTooManyRequests());
+    }
+
+    @Test
     void loggedInUserIsNotLimited() throws Exception {
         for (int i = 0; i < 5; i++) {
             mockMvc.perform(get("/api/session").with(ip("10.0.0.3")).with(oauth2Login())).andExpect(status().isOk());
