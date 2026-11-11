@@ -15,6 +15,7 @@ public class HtmlPageRenderer {
             "<meta\\s+name=\"description\"[^>]*>\\s*", Pattern.CASE_INSENSITIVE);
     private static final Pattern HEAD_END = Pattern.compile("</head>", Pattern.CASE_INSENSITIVE);
     private static final Pattern ROOT = Pattern.compile("<div id=\"root\">\\s*</div>");
+    private static final Pattern ROOT_START = Pattern.compile("<div id=\"root\">");
     private static final Pattern BODY_START = Pattern.compile("<body[^>]*>", Pattern.CASE_INSENSITIVE);
 
     private final String siteName;
@@ -35,6 +36,11 @@ public class HtmlPageRenderer {
         final Matcher rootMatcher = ROOT.matcher(html);
         if (rootMatcher.find()) {
             return rootMatcher.replaceFirst(Matcher.quoteReplacement(root));
+        }
+        // #root не пустой (например, noscript) - содержимое в его начало: второй #root сломал бы монтирование SPA
+        final Matcher rootStartMatcher = ROOT_START.matcher(html);
+        if (rootStartMatcher.find()) {
+            return rootStartMatcher.replaceFirst(Matcher.quoteReplacement("<div id=\"root\">" + page.bodyHtml()));
         }
         return BODY_START.matcher(html).replaceFirst(match -> Matcher.quoteReplacement(match.group() + root));
     }

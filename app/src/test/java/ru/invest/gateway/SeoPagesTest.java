@@ -15,16 +15,20 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import javax.xml.parsers.DocumentBuilderFactory;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.oauth2Login;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.head;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -35,7 +39,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 @SpringBootTest(properties = {
     "invest.gateway.public-access.rate-limit.requests-per-minute=0",
-    "invest.gateway.seo.template-ttl=0s"})
+    "invest.gateway.seo.template-ttl=0s",
+    "server.forward-headers-strategy=framework"})
 @AutoConfigureMockMvc
 @Import(KeycloakStubConfiguration.class)
 class SeoPagesTest {
@@ -261,6 +266,145 @@ class SeoPagesTest {
     void otherPagesStillRequireLogin() throws Exception {
         mockMvc.perform(get("/portfolio").accept(MediaType.TEXT_HTML)).andExpect(status().is3xxRedirection());
         mockMvc.perform(get("/bonds/SU26238RMFS4/extra").accept(MediaType.TEXT_HTML)).andExpect(status().is3xxRedirection());
+    }
+
+    @Test
+    void headOfSeoPageWithoutSessionHasNoBody() throws Exception {
+        RESPONSES.put("/internal/rest/bonds/SU26238RMFS4", new Response(200, BOND));
+
+        mockMvc.perform(head("/bonds/SU26238RMFS4"))
+                .andExpect(status().isOk())
+                // тело у HEAD отбрасывает контейнер, MockMvc его оставляет - проверяются статус и тип
+                .andExpect(content().contentTypeCompatibleWith(MediaType.TEXT_HTML));
+        mockMvc.perform(head("/robots.txt")).andExpect(status().isOk());
+        mockMvc.perform(head("/issuers/abc")).andExpect(status().isNotFound());
+    }
+
+    @Test
+    void canonicalAndSitemapUseForwardedAddress() throws Exception {
+        RESPONSES.put("/internal/rest/bonds/SU26238RMFS4", new Response(200, BOND));
+        RESPONSES.put("/internal/rest/bonds/sitemap", new Response(200, """
+                {"tickers":["SU26238RMFS4"],"issuerIds":[],"collections":[]}"""));
+
+        final String html = mockMvc.perform(get("/bonds/SU26238RMFS4")
+                        .header("X-Forwarded-Proto", "https")
+                        .header("X-Forwarded-Host", "bonds.example")
+                        .header("X-Forwarded-Port", "443"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        final String xml = mockMvc.perform(get("/sitemap.xml").header("X-Forwarded-Proto", "https")
+                        .header("X-Forwarded-Host", "bonds.example"))
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+
+        assertThat(html)
+                .contains("<link rel=\"canonical\" href=\"https://bonds.example/bonds/SU26238RMFS4\" />")
+                .contains("<meta property=\"og:url\" content=\"https://bonds.example/bonds/SU26238RMFS4\" />");
+        assertThat(xml).contains("<loc>https://bonds.example/bonds/SU26238RMFS4</loc>");
+    }
+
+    @Test
+    void tickerIsEncodedForInvestApiAndInCanonical() throws Exception {
+        // заглушка сравнивает декодированный путь: запрос в invest-api ушёл с тем же тикером
+        RESPONSES.put("/internal/rest/bonds/A B", new Response(200, """
+                {"ticker":"A B","name":"С пробелом","amortizationFlag":false}"""));
+
+        final String html = body(get("/bonds/{ticker}", "A B"), 200);
+
+        assertThat(html)
+                .contains("<h1>С пробелом</h1>")
+                .contains("<link rel=\"canonical\" href=\"http://localhost/bonds/A%20B\" />");
+    }
+
+    @Test
+    void issuerWithoutTitlesAndBonds() throws Exception {
+        RESPONSES.put("/internal/rest/bonds/issuers/7", new Response(200, """
+                {"id":7,"title":null,"shortTitle":null,"inn":null,"bonds":[]}"""));
+
+        final String html = body(get("/issuers/7"), 200);
+
+        assertThat(html)
+                .contains("<title>Эмитент 7 - облигации эмитента - Облигации</title>")
+                .contains("<p>Выпусков в обращении нет.</p>")
+                .doesNotContain("<h2>Новости</h2>");
+    }
+
+    @Test
+    void issuerApiFailureGivesServiceUnavailable() throws Exception {
+        RESPONSES.put("/internal/rest/bonds/issuers/7", new Response(500, "{}"));
+
+        mockMvc.perform(get("/issuers/7"))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(header().string(HttpHeaders.RETRY_AFTER, "60"));
+    }
+
+    @Test
+    void emptyCollectionRenders() throws Exception {
+        RESPONSES.put("/internal/rest/bonds/collections/maturity-this-year", new Response(200, """
+                {"slug":"maturity-this-year","title":"Погашение в этом году","description":"Описание",
+                 "bonds":{"content":[],"totalElements":0}}"""));
+
+        final String html = body(get("/collections/maturity-this-year"), 200);
+
+        assertThat(html)
+                .contains("<h1>Погашение в этом году</h1>")
+                .contains("<p>Выпусков в обращении нет.</p>")
+                .doesNotContain("Показаны первые");
+    }
+
+    @Test
+    void unknownCollectionIsNotFound() throws Exception {
+        final String html = body(get("/collections/unknown"), 404);
+
+        assertThat(html).contains("<meta name=\"robots\" content=\"noindex\" />").doesNotContain("rel=\"canonical\"");
+    }
+
+    @Test
+    void sitemapWithNullListsHasOnlyBondList() throws Exception {
+        RESPONSES.put("/internal/rest/bonds/sitemap", new Response(200, """
+                {"tickers":null,"issuerIds":[null,5],"collections":null}"""));
+
+        final String xml = body(get("/sitemap.xml"), 200);
+
+        assertThat(locations(xml)).containsExactly("http://localhost/bonds", "http://localhost/issuers/5");
+    }
+
+    @Test
+    void sitemapIsWellFormedXmlWithEncodedPaths() throws Exception {
+        RESPONSES.put("/internal/rest/bonds/sitemap", new Response(200, """
+                {"tickers":["A&B","C D","Э1"],"issuerIds":[1],"collections":["ofz-top-yield"]}"""));
+
+        final String xml = body(get("/sitemap.xml"), 200);
+
+        assertThat(locations(xml)).containsExactly(
+                "http://localhost/bonds",
+                "http://localhost/collections/ofz-top-yield",
+                "http://localhost/bonds/A&B",
+                "http://localhost/bonds/C%20D",
+                "http://localhost/bonds/%D0%AD1",
+                "http://localhost/issuers/1");
+    }
+
+    @Test
+    void sitemapWhenInvestApiFailsIsServiceUnavailable() throws Exception {
+        RESPONSES.put("/internal/rest/bonds/sitemap", new Response(500, "{}"));
+
+        // не пустой sitemap с 200: поисковик решил бы, что страниц больше нет. Как у SEO-страниц - 503 и Retry-After
+        mockMvc.perform(get("/sitemap.xml"))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(header().string(HttpHeaders.RETRY_AFTER, "60"))
+                .andExpect(content().string(""));
+    }
+
+    private static List<String> locations(final String xml) throws Exception {
+        final var factory = DocumentBuilderFactory.newInstance();
+        factory.setNamespaceAware(true);
+        final var document = factory.newDocumentBuilder().parse(new ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8)));
+        final var nodes = document.getElementsByTagNameNS("http://www.sitemaps.org/schemas/sitemap/0.9", "loc");
+        final List<String> result = new java.util.ArrayList<>();
+        for (int index = 0; index < nodes.getLength(); index++) {
+            result.add(nodes.item(index).getTextContent());
+        }
+        return result;
     }
 
     private String body(final org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder request,

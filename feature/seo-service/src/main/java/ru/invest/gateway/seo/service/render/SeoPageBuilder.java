@@ -173,11 +173,20 @@ public class SeoPageBuilder {
         final String items = news.stream()
                 .filter(item -> item.title() != null)
                 .map(item -> "<li>" + (item.publishedAt() == null ? "" : date(item.publishedAt()) + " - ")
-                        + (item.url() == null ? escape(item.title())
+                        + (!isHttpUrl(item.url()) ? escape(item.title())
                         : "<a href=\"" + escape(item.url()) + "\" rel=\"nofollow noopener\">" + escape(item.title()) + "</a>")
                         + "</li>\n")
                 .collect(Collectors.joining());
         return "<h2>Новости</h2>\n<ul>\n" + items + "</ul>\n";
+    }
+
+    // адрес новости - внешние данные: ссылка только на http(s), javascript: и прочие схемы - просто текст
+    private static boolean isHttpUrl(final String url) {
+        if (url == null) {
+            return false;
+        }
+        final String lower = url.strip().toLowerCase(Locale.ROOT);
+        return lower.startsWith("https://") || lower.startsWith("http://");
     }
 
     private static String breadcrumbs(final String... crumbs) {

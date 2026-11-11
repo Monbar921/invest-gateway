@@ -38,8 +38,9 @@ public class SeoPageController {
     public static final String BOND_PATH = "/bonds/{ticker}";
     public static final String ISSUER_PATH = "/issuers/{id}";
     public static final String COLLECTION_PATH = "/collections/{slug}";
+    /** Через сколько секунд повторить запрос, если invest-api не ответил: страницы и sitemap.xml */
+    static final String RETRY_AFTER_SECONDS = "60";
     private static final MediaType TEXT_HTML_UTF8 = MediaType.parseMediaType("text/html;charset=UTF-8");
-    private static final String RETRY_AFTER_SECONDS = "60";
 
     private final InvestApiSeoClient client;
     private final SeoPageBuilder builder;

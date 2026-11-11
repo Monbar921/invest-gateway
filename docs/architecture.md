@@ -99,7 +99,8 @@ ingress. Каждый новый адрес UI нужно добавить в re
   всё из invest-api экранируется. React при загрузке заменяет содержимое своим;
 - неизвестная облигация, эмитент или подборка - `404` с `noindex`; invest-api не ответил - `503` с `Retry-After` и
   оболочкой без содержимого (SPA работает, поисковик не запоминает пустую страницу);
-- `SitemapController`: `sitemap.xml` по `GET /internal/rest/bonds/sitemap`, `robots.txt` (личные разделы закрыты,
+- `SitemapController`: `sitemap.xml` по `GET /internal/rest/bonds/sitemap` (invest-api не ответил - `503` с
+  `Retry-After`), `robots.txt` (личные разделы закрыты,
   `/api/bonds` открыт - он нужен поисковику, исполняющему SPA);
 - абсолютные адреса - от `invest.gateway.seo.public-url`, если не задан - от запроса (`X-Forwarded-*`);
 - включается `invest.gateway.seo.enabled` и только вместе с `public-access.enabled`.
