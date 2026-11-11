@@ -88,6 +88,13 @@ class SecurityConfigurationTest {
     }
 
     @Test
+    void brokerClickWithoutSessionIsRoutedToInvestApi() throws Exception {
+        // учёт перехода к брокеру-партнёру: гость кликает так же, как вошедший
+        assertRoutedTo(withCsrf(post("/api/bonds/RU000A0JX0J2/broker-links/alpha/click")),
+                "/bonds/RU000A0JX0J2/broker-links/alpha/click");
+    }
+
+    @Test
     void anonymousPostWithoutCsrfTokenIsForbidden() throws Exception {
         mockMvc.perform(post("/api/bonds/all/page"))
                 .andExpect(status().isForbidden());

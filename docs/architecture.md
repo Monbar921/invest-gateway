@@ -46,8 +46,9 @@ Vite proxy, на стенде - ingress.
 
 - без входа открыты `/actuator/health`, `GET /api/session` и, в публичном режиме (`invest.gateway.public-access.enabled`,
   по умолчанию включён), чтение облигаций: `GET`/`HEAD /api/bonds/**`, `POST /api/bonds/*/page` и
-  `POST /api/bonds/*/calculation` (POST - чтение с фильтрами в теле; открыты поимённо, чтобы будущий изменяющий POST не
-  стал публичным сам собой). Всё остальное, в том числе `/api/alerts/**` и `/api/portfolio/**`, требует аутентификации.
+  `POST /api/bonds/*/calculation` (POST - чтение с фильтрами в теле), `POST /api/bonds/*/broker-links/*/click` (учёт
+  перехода к брокеру-партнёру, [INVEST-001-broker-referral](../../invest-api/docs/features/INVEST-001-broker-referral/));
+  POST открыты поимённо, чтобы будущий изменяющий POST не стал публичным сам собой. Всё остальное, в том числе `/api/alerts/**` и `/api/portfolio/**`, требует аутентификации.
   Error dispatch (`/error` после `sendError`) открыт - иначе гость вместо `403`/`404` получал бы `401`.
   Подробности и решения - [INVEST-001-public-mode](../../invest-api/docs/features/INVEST-001-public-mode/);
 - без сессии `/api/**` отвечает `401` (fetch из UI должен получить статус, а не HTML логина Keycloak),

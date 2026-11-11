@@ -41,10 +41,12 @@ public class SecurityConfiguration {
     private static final String API_PATTERN = "/api/**";
     private static final String BONDS_PATTERN = "/api/bonds/**";
     /**
-     * Изменяющих методов у облигаций нет, но POST - это чтение с фильтрами в теле (страница и расчёт калькулятора).
-     * Открыты только они: новый POST под /api/bonds не станет публичным сам собой.
+     * POST, открытые без входа: чтение с фильтрами в теле (страница и расчёт калькулятора) и учёт перехода к
+     * брокеру-партнёру (счётчик без пользователя, гость тоже кликает). Открыты поимённо: новый POST под /api/bonds не
+     * станет публичным сам собой.
      */
-    private static final String[] PUBLIC_BOND_POSTS = {"/api/bonds/*/page", "/api/bonds/*/calculation"};
+    private static final String[] PUBLIC_BOND_POSTS = {
+            "/api/bonds/*/page", "/api/bonds/*/calculation", "/api/bonds/*/broker-links/*/click"};
 
     @Bean
     public SecurityFilterChain securityFilterChain(final HttpSecurity http,

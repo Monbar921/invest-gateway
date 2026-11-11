@@ -24,6 +24,7 @@ Keycloak и invest-api для тестов не нужны.
 | `alertsAreRoutedToInvestApi`, `alertsWithoutSessionReturnUnauthorized` | `/api/alerts/**` с сессией уходит на `/internal/rest/alerts/**`, без сессии - `401` |
 | `portfolioIsRoutedToInvestApi`, `portfolioWithoutSessionReturnsUnauthorized` | `/api/portfolio/**` с сессией уходит на `/internal/rest/portfolio/**`, без сессии - `401` |
 | `bondReadWithoutSessionIsRoutedToInvestApi`, `bondPageAndCalculationWithoutSessionAreRoutedToInvestApi` | публичный режим: чтение облигаций и POST страницы и расчёта без сессии уходят в invest-api |
+| `brokerClickWithoutSessionIsRoutedToInvestApi` | публичный режим: учёт перехода к брокеру-партнёру без сессии уходит в invest-api |
 | `anonymousPostWithoutCsrfTokenIsForbidden`, `csrfCookieIsIssuedWithoutSession` | анонимный POST без `X-XSRF-TOKEN` - `403`; cookie `XSRF-TOKEN` выдаётся без сессии |
 | `errorDispatchOfGuestKeepsOriginalStatus`  | error dispatch у гостя отдаёт исходный статус (`403`), а не `401` |
 | `otherBondPostsStillRequireLogin`          | другие POST под `/api/bonds` без сессии - `401`        |
