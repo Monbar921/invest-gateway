@@ -27,7 +27,7 @@ import java.util.List;
  * Браузер получает только session cookie, downstream-сервисы токенов не видят.
  * <p>
  * Публичный режим ({@link PublicAccessProperties#enabled()}): чтение облигаций открыто без входа,
- * уведомления и портфель - только с сессией.
+ * уведомления и портфель - только с сессией. Календарь выплат по личной ссылке открыт всегда - его защищает токен.
  */
 @Configuration
 @EnableConfigurationProperties(PublicAccessProperties.class)
@@ -47,6 +47,11 @@ public class SecurityConfiguration {
      */
     private static final String[] PUBLIC_BOND_POSTS = {
             "/api/bonds/*/page", "/api/bonds/*/calculation", "/api/bonds/*/broker-links/*/click"};
+    /**
+     * Календарь выплат по личной ссылке (.ics): Google, Apple, Outlook забирают его без сессии, пользователя
+     * определяет токен в пути (проверяет invest-api). Открыт и без публичного режима - это не общие данные.
+     */
+    private static final String CALENDAR_FEED = "/api/calendar/*";
 
     @Bean
     public SecurityFilterChain securityFilterChain(final HttpSecurity http,
@@ -63,6 +68,8 @@ public class SecurityConfiguration {
                     // а UI на 401 уводит на логин
                     requests.dispatcherTypeMatchers(DispatcherType.ERROR).permitAll();
                     requests.requestMatchers("/actuator/health", SessionController.SESSION_PATH).permitAll();
+                    requests.requestMatchers(HttpMethod.GET, CALENDAR_FEED).permitAll()
+                            .requestMatchers(HttpMethod.HEAD, CALENDAR_FEED).permitAll();
                     if (publicAccess.enabled()) {
                         requests.requestMatchers(HttpMethod.GET, BONDS_PATTERN).permitAll()
                                 .requestMatchers(HttpMethod.HEAD, BONDS_PATTERN).permitAll()

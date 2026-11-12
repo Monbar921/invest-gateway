@@ -11,6 +11,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -46,6 +47,13 @@ class PublicAccessDisabledTest {
         mockMvc.perform(get("/api/session"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.authenticated").value(false));
+    }
+
+    @Test
+    void calendarFeedIsOpenWithoutPublicMode() {
+        // календарь по ссылке - не общие данные, публичный режим на него не влияет; invest-api в тесте недоступен
+        assertThatThrownBy(() -> mockMvc.perform(get("/api/calendar/abc.ics")))
+                .hasMessageContaining("http://127.0.0.1:1/internal/rest/calendar/abc.ics");
     }
 
     @Test

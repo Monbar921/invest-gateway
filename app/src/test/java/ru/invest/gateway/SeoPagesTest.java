@@ -258,6 +258,7 @@ class SeoPagesTest {
         assertThat(robots)
                 .contains("Disallow: /portfolio")
                 .contains("Disallow: /api/alerts")
+                .contains("Disallow: /api/calendar")
                 .doesNotContain("Disallow: /api/bonds")
                 .contains("Sitemap: http://localhost/sitemap.xml");
     }

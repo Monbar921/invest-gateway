@@ -32,19 +32,22 @@ Vite proxy, на стенде - ingress.
 | `/api/bonds/**`                  | проксируется в invest-api на `/internal/rest/bonds/**` (`RewritePath`); чтение - без входа |
 | `/api/alerts/**`                 | то же для уведомлений: `/internal/rest/alerts/**` (подключение Telegram)  |
 | `/api/portfolio/**`              | то же для портфеля: `/internal/rest/portfolio/**`                         |
+| `GET /api/calendar/{токен}.ics`  | календарь выплат портфеля по личной ссылке: `/internal/rest/calendar/**`; без входа и независимо от публичного режима - пользователя определяет токен ([INVEST-001-payment-calendar](../../invest-api/docs/features/INVEST-001-payment-calendar/)) |
 | `GET /api/session`               | состояние входа для UI: `{authenticated, username}`, без авторизации, всегда `200` |
 | `GET /bonds`, `/bonds/{ticker}`, `/issuers/{id}`, `/collections/{slug}` | SEO-страницы: `index.html` UI с метаданными и готовым содержимым (см. ниже); без входа в публичном режиме |
 | `GET /sitemap.xml`, `GET /robots.txt` | sitemap всех облигаций, эмитентов и подборок; robots с адресом sitemap |
 | `/actuator/health`               | без авторизации                                                           |
 
-Наружу открыты облигации, уведомления и портфель: maintenance-эндпоинты invest-api (`/internal/rest/maintenance/**`) через gateway
+Наружу открыты облигации, уведомления, портфель и календарь по ссылке: maintenance-эндпоинты invest-api (`/internal/rest/maintenance/**`) через gateway
 недоступны.
 
 ## Безопасность (`feature/authorization-service`)
 
 `SecurityConfiguration`:
 
-- без входа открыты `/actuator/health`, `GET /api/session` и, в публичном режиме (`invest.gateway.public-access.enabled`,
+- без входа открыты `/actuator/health`, `GET /api/session`, `GET`/`HEAD /api/calendar/*` (календарь выплат `.ics` по
+  личной ссылке: Google, Apple, Outlook забирают его со своих серверов без cookie; токен проверяет invest-api,
+  открыт и без публичного режима - это не общие данные; входит в лимит анонимных запросов) и, в публичном режиме (`invest.gateway.public-access.enabled`,
   по умолчанию включён), чтение облигаций: `GET`/`HEAD /api/bonds/**`, `POST /api/bonds/*/page` и
   `POST /api/bonds/*/calculation` (POST - чтение с фильтрами в теле), `POST /api/bonds/*/broker-links/*/click` (учёт
   перехода к брокеру-партнёру, [INVEST-001-broker-referral](../../invest-api/docs/features/INVEST-001-broker-referral/));
@@ -102,7 +105,7 @@ ingress. Каждый новый адрес UI нужно добавить в re
   оболочкой без содержимого (SPA работает, поисковик не запоминает пустую страницу);
 - `SitemapController`: `sitemap.xml` по `GET /internal/rest/bonds/sitemap` (invest-api не ответил - `503` с
   `Retry-After`), `robots.txt` (личные разделы закрыты,
-  `/api/bonds` открыт - он нужен поисковику, исполняющему SPA);
+  `/api/bonds` открыт - он нужен поисковику, исполняющему SPA; `/api/calendar` закрыт - личные ссылки);
 - абсолютные адреса - от `invest.gateway.seo.public-url`, если не задан - от запроса (`X-Forwarded-*`);
 - включается `invest.gateway.seo.enabled` и только вместе с `public-access.enabled`.
 

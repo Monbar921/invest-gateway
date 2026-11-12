@@ -48,12 +48,13 @@ spring:
       server:
         webmvc:
           routes:
-            # наружу открыты облигации, уведомления и портфель; maintenance-эндпоинты invest-api недоступны.
-            # Пользователя invest-api получает в X-User-Id (UserIdHeaderFilter)
+            # наружу открыты облигации, уведомления, портфель и календарь выплат по личной ссылке (.ics);
+            # maintenance-эндпоинты invest-api недоступны. Пользователя invest-api получает в X-User-Id
+            # (UserIdHeaderFilter), календарь по ссылке - по токену в пути
             - id: invest-api
               uri: ${invest.gateway.invest-api-uri}
               predicates:
-                - Path=/api/bonds/**,/api/alerts/**,/api/portfolio/**
+                - Path=/api/bonds/**,/api/alerts/**,/api/portfolio/**,/api/calendar/**
               filters:
                 - RewritePath=/api/(?<segment>.*), /internal/rest/$\{segment}
 

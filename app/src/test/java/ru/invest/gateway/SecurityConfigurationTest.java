@@ -172,6 +172,24 @@ class SecurityConfigurationTest {
                 .andExpect(status().isUnauthorized());
     }
 
+    // --- календарь выплат по личной ссылке: без сессии, пользователя определяет токен
+
+    @Test
+    void calendarFeedWithoutSessionIsRoutedToInvestApi() {
+        assertRoutedTo(get("/api/calendar/abc_DEF-123.ics"), "/calendar/abc_DEF-123.ics");
+    }
+
+    @Test
+    void calendarSettingsStillRequireLogin() throws Exception {
+        // ссылку создают и видят только в портфеле, с сессией
+        mockMvc.perform(get("/api/portfolio/calendar/link"))
+                .andExpect(status().isUnauthorized());
+        mockMvc.perform(withCsrf(post("/api/calendar/abc.ics")))
+                .andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/calendar/abc/nested.ics"))
+                .andExpect(status().isUnauthorized());
+    }
+
     // --- состояние входа для UI
 
     @Test
