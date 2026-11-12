@@ -172,6 +172,17 @@ class SecurityConfigurationTest {
                 .andExpect(status().isUnauthorized());
     }
 
+    @Test
+    void accountIsRoutedToInvestApi() {
+        assertRoutedTo(get("/api/account/plan").with(oauth2Login()), "/account/plan");
+    }
+
+    @Test
+    void accountWithoutSessionReturnsUnauthorized() throws Exception {
+        mockMvc.perform(get("/api/account/plan"))
+                .andExpect(status().isUnauthorized());
+    }
+
     // --- календарь выплат по личной ссылке: без сессии, пользователя определяет токен
 
     @Test

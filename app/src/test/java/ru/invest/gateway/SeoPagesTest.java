@@ -259,6 +259,8 @@ class SeoPagesTest {
                 .contains("Disallow: /portfolio")
                 .contains("Disallow: /api/alerts")
                 .contains("Disallow: /api/calendar")
+                .contains("Disallow: /plan")
+                .contains("Disallow: /api/account")
                 .doesNotContain("Disallow: /api/bonds")
                 .contains("Sitemap: http://localhost/sitemap.xml");
     }

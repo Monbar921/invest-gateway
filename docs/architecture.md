@@ -32,6 +32,7 @@ Vite proxy, на стенде - ingress.
 | `/api/bonds/**`                  | проксируется в invest-api на `/internal/rest/bonds/**` (`RewritePath`); чтение - без входа |
 | `/api/alerts/**`                 | то же для уведомлений: `/internal/rest/alerts/**` (подключение Telegram)  |
 | `/api/portfolio/**`              | то же для портфеля: `/internal/rest/portfolio/**`                         |
+| `/api/account/**`                | то же для тарифа пользователя: `/internal/rest/account/**` ([INVEST-001-plans](../../invest-api/docs/features/INVEST-001-plans/)) |
 | `GET /api/calendar/{токен}.ics`  | календарь выплат портфеля по личной ссылке: `/internal/rest/calendar/**`; без входа и независимо от публичного режима - пользователя определяет токен ([INVEST-001-payment-calendar](../../invest-api/docs/features/INVEST-001-payment-calendar/)) |
 | `GET /api/session`               | состояние входа для UI: `{authenticated, username}`, без авторизации, всегда `200` |
 | `GET /bonds`, `/bonds/{ticker}`, `/issuers/{id}`, `/collections/{slug}` | SEO-страницы: `index.html` UI с метаданными и готовым содержимым (см. ниже); без входа в публичном режиме |
@@ -51,7 +52,7 @@ Vite proxy, на стенде - ingress.
   по умолчанию включён), чтение облигаций: `GET`/`HEAD /api/bonds/**`, `POST /api/bonds/*/page` и
   `POST /api/bonds/*/calculation` (POST - чтение с фильтрами в теле), `POST /api/bonds/*/broker-links/*/click` (учёт
   перехода к брокеру-партнёру, [INVEST-001-broker-referral](../../invest-api/docs/features/INVEST-001-broker-referral/));
-  POST открыты поимённо, чтобы будущий изменяющий POST не стал публичным сам собой. Всё остальное, в том числе `/api/alerts/**` и `/api/portfolio/**`, требует аутентификации.
+  POST открыты поимённо, чтобы будущий изменяющий POST не стал публичным сам собой. Всё остальное, в том числе `/api/alerts/**`, `/api/portfolio/**` и `/api/account/**`, требует аутентификации.
   Error dispatch (`/error` после `sendError`) открыт - иначе гость вместо `403`/`404` получал бы `401`.
   Подробности и решения - [INVEST-001-public-mode](../../invest-api/docs/features/INVEST-001-public-mode/);
 - без сессии `/api/**` отвечает `401` (fetch из UI должен получить статус, а не HTML логина Keycloak),

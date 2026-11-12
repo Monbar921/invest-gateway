@@ -82,8 +82,10 @@ public class SitemapController {
                 Allow: /
                 Disallow: /portfolio
                 Disallow: /alerts
+                Disallow: /plan
                 Disallow: /api/portfolio
                 Disallow: /api/alerts
+                Disallow: /api/account
                 Disallow: /api/calendar
                 Disallow: /api/session
                 Disallow: /oauth2/
