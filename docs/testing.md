@@ -25,6 +25,7 @@ Keycloak и invest-api для тестов не нужны.
 | `portfolioIsRoutedToInvestApi`, `portfolioWithoutSessionReturnsUnauthorized` | `/api/portfolio/**` с сессией уходит на `/internal/rest/portfolio/**`, без сессии - `401` |
 | `bondReadWithoutSessionIsRoutedToInvestApi`, `bondPageAndCalculationWithoutSessionAreRoutedToInvestApi` | публичный режим: чтение облигаций и POST страницы и расчёта без сессии уходят в invest-api |
 | `brokerClickWithoutSessionIsRoutedToInvestApi` | публичный режим: учёт перехода к брокеру-партнёру без сессии уходит в invest-api |
+| `brokerClickWithoutCsrfTokenIsForbidden`, `otherBrokerLinkPostsStillRequireLogin` | клик гостя без `X-XSRF-TOKEN` - `403`; другие POST под `broker-links` (`/broker-links`, `/broker-links/{id}`, лишний сегмент после `click`) без сессии - `401` |
 | `anonymousPostWithoutCsrfTokenIsForbidden`, `csrfCookieIsIssuedWithoutSession` | анонимный POST без `X-XSRF-TOKEN` - `403`; cookie `XSRF-TOKEN` выдаётся без сессии |
 | `errorDispatchOfGuestKeepsOriginalStatus`  | error dispatch у гостя отдаёт исходный статус (`403`), а не `401` |
 | `otherBondPostsStillRequireLogin`          | другие POST под `/api/bonds` без сессии - `401`        |
@@ -33,7 +34,7 @@ Keycloak и invest-api для тестов не нужны.
 | `LoginReturnTest`                          | какие `returnTo` допустимы; после входа - редирект на него один раз, без него - на `/` |
 | `AnonymousRateLimiterTest`                 | token bucket: всплеск до лимита, пополнение, `Retry-After`, `0` - без лимита, память при множестве IP |
 | `AnonymousRateLimitTest`                   | `429` сверх лимита по IP, у другого IP свой запас, вошедший и не-`/api` - без лимита |
-| `PublicAccessDisabledTest`                 | `public-access.enabled=false`: облигации без сессии - `401`, `/api/session` открыт |
+| `PublicAccessDisabledTest`                 | `public-access.enabled=false`: облигации и клик по ссылке брокера без сессии - `401`, `/api/session` открыт |
 | `SeoPagesTest`                             | SEO-страницы с HTTP-заглушкой invest-api и UI: метаданные и содержимое облигации, экранирование, `404` с `noindex`, `503` при ошибке invest-api, без новостей, последняя оболочка при недоступном UI, эмитент, подборка, список (canonical без query), вошедший, `sitemap.xml`, `robots.txt`, другие страницы - под логином; `HEAD` без сессии, canonical и sitemap по `X-Forwarded-*`, тикер с пробелом (запрос в invest-api и canonical), эмитент без названий и выпусков, `503` эмитента, пустая подборка, неизвестная подборка - `404`, sitemap с `null`-списками, sitemap - корректный XML с закодированными адресами, ошибка invest-api на sitemap - `503` с `Retry-After` |
 | `HtmlPageRendererTest`                     | вставка в оболочку: описание UI в несколько строк заменяется без дубля, оболочка без `#root` и с непустым `#root` - один `#root`, `$` и `\` в тексте, `404` без canonical и og:url, экранирование title и description |
 | `SeoPageBuilderTest`                       | облигация без цены, доходности и имени, тикер в адресах кодируется, оферта и купон, эмитент без названия, новости без заголовка и без ссылки, ссылка новости только `http(s)`, эмитент без названий, пустая подборка, description не длиннее 300 символов, список без подборок |

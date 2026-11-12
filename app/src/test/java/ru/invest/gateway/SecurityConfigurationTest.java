@@ -95,6 +95,24 @@ class SecurityConfigurationTest {
     }
 
     @Test
+    void brokerClickWithoutCsrfTokenIsForbidden() throws Exception {
+        // путь открыт без входа, но CSRF-проверка остаётся: чужой сайт не накрутит клики формой
+        mockMvc.perform(post("/api/bonds/RU000A0JX0J2/broker-links/alpha/click"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void otherBrokerLinkPostsStillRequireLogin() throws Exception {
+        // открыт только сам клик: соседние POST'ы под broker-links без сессии - 401
+        mockMvc.perform(withCsrf(post("/api/bonds/RU000A0JX0J2/broker-links")))
+                .andExpect(status().isUnauthorized());
+        mockMvc.perform(withCsrf(post("/api/bonds/RU000A0JX0J2/broker-links/alpha")))
+                .andExpect(status().isUnauthorized());
+        mockMvc.perform(withCsrf(post("/api/bonds/RU000A0JX0J2/broker-links/alpha/click/extra")))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
     void anonymousPostWithoutCsrfTokenIsForbidden() throws Exception {
         mockMvc.perform(post("/api/bonds/all/page"))
                 .andExpect(status().isForbidden());

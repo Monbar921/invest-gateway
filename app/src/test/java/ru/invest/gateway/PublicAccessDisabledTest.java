@@ -1,5 +1,6 @@
 package ru.invest.gateway;
 
+import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -7,8 +8,11 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -42,5 +46,18 @@ class PublicAccessDisabledTest {
         mockMvc.perform(get("/api/session"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.authenticated").value(false));
+    }
+
+    @Test
+    void brokerClickWithoutSessionReturnsUnauthorized() throws Exception {
+        // клик открыт только вместе с чтением облигаций
+        mockMvc.perform(withCsrf(post("/api/bonds/RU000A0JX0J2/broker-links/alpha/click")))
+                .andExpect(status().isUnauthorized());
+    }
+
+    private MockHttpServletRequestBuilder withCsrf(final MockHttpServletRequestBuilder request) throws Exception {
+        final Cookie csrfCookie = mockMvc.perform(get("/actuator/health")).andReturn().getResponse().getCookie("XSRF-TOKEN");
+        assertThat(csrfCookie).isNotNull();
+        return request.cookie(csrfCookie).header("X-XSRF-TOKEN", csrfCookie.getValue());
     }
 }
