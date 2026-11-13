@@ -201,6 +201,33 @@ class SecurityConfigurationTest {
                 .andExpect(status().isUnauthorized());
     }
 
+    // --- оплата
+
+    @Test
+    void paymentNotificationWithoutSessionAndCsrfIsRoutedToInvestApi() {
+        // Т-Касса шлёт webhook без cookie и CSRF-токена; подпись проверяет invest-api
+        assertRoutedTo(post("/api/payments/notifications/tbank").contentType(MediaType.APPLICATION_JSON)
+                .content("{}"), "/payments/notifications/tbank");
+    }
+
+    @Test
+    void paymentsOfUserRequireLogin() throws Exception {
+        mockMvc.perform(withCsrf(post("/api/account/payments")))
+                .andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/payments/notifications/tbank"))
+                .andExpect(status().isUnauthorized());
+        mockMvc.perform(withCsrf(post("/api/payments/other")))
+                .andExpect(status().isUnauthorized());
+        // CSRF не проверяется только у webhook: остальные POST без токена - 403
+        mockMvc.perform(post("/api/payments/other"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void purchaseWithSessionIsRoutedToInvestApi() throws Exception {
+        assertRoutedTo(withCsrf(post("/api/account/payments").with(oauth2Login())), "/account/payments");
+    }
+
     // --- состояние входа для UI
 
     @Test

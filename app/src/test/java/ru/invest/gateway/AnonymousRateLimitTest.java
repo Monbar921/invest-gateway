@@ -10,8 +10,12 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
+import java.nio.channels.ClosedChannelException;
+
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.oauth2Login;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -56,6 +60,16 @@ class AnonymousRateLimitTest {
     void loggedInUserIsNotLimited() throws Exception {
         for (int i = 0; i < 5; i++) {
             mockMvc.perform(get("/api/session").with(ip("10.0.0.3")).with(oauth2Login())).andExpect(status().isOk());
+        }
+    }
+
+    @Test
+    void paymentNotificationsAreNotLimited() {
+        // webhook провайдера уходит в invest-api (в тесте недоступен - ошибка проксирования), а не получает 429
+        for (int i = 0; i < 3; i++) {
+            assertThatThrownBy(() -> mockMvc.perform(post("/api/payments/notifications/tbank").with(ip("10.0.0.6"))
+                    .contentType(MediaType.APPLICATION_JSON).content("{}")))
+                    .hasRootCauseInstanceOf(ClosedChannelException.class);
         }
     }
 

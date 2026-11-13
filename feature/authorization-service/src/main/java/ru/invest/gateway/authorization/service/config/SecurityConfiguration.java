@@ -8,7 +8,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.configurers.CsrfConfigurer;
 import org.springframework.security.oauth2.client.oidc.web.logout.OidcClientInitiatedLogoutSuccessHandler;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestRedirectFilter;
@@ -27,7 +26,8 @@ import java.util.List;
  * Браузер получает только session cookie, downstream-сервисы токенов не видят.
  * <p>
  * Публичный режим ({@link PublicAccessProperties#enabled()}): чтение облигаций открыто без входа,
- * уведомления и портфель - только с сессией. Календарь выплат по личной ссылке открыт всегда - его защищает токен.
+ * уведомления и портфель - только с сессией. Календарь выплат по личной ссылке открыт всегда - его защищает токен,
+ * webhook платёжного провайдера - тоже всегда, его защищает подпись.
  */
 @Configuration
 @EnableConfigurationProperties(PublicAccessProperties.class)
@@ -38,6 +38,11 @@ public class SecurityConfiguration {
      */
     public static final List<String> PUBLIC_PAGES = List.of(
             "/bonds", "/bonds/*", "/issuers/*", "/collections/*", "/sitemap.xml", "/robots.txt");
+    /**
+     * Webhook платёжного провайдера (Т-Касса): без сессии и CSRF-токена, подлинность проверяет invest-api по подписи в
+     * теле. Открыт и без публичного режима.
+     */
+    public static final String PAYMENT_NOTIFICATIONS = "/api/payments/notifications/*";
     private static final String API_PATTERN = "/api/**";
     private static final String BONDS_PATTERN = "/api/bonds/**";
     /**
@@ -69,7 +74,8 @@ public class SecurityConfiguration {
                     requests.dispatcherTypeMatchers(DispatcherType.ERROR).permitAll();
                     requests.requestMatchers("/actuator/health", SessionController.SESSION_PATH).permitAll();
                     requests.requestMatchers(HttpMethod.GET, CALENDAR_FEED).permitAll()
-                            .requestMatchers(HttpMethod.HEAD, CALENDAR_FEED).permitAll();
+                            .requestMatchers(HttpMethod.HEAD, CALENDAR_FEED).permitAll()
+                            .requestMatchers(HttpMethod.POST, PAYMENT_NOTIFICATIONS).permitAll();
                     if (publicAccess.enabled()) {
                         requests.requestMatchers(HttpMethod.GET, BONDS_PATTERN).permitAll()
                                 .requestMatchers(HttpMethod.HEAD, BONDS_PATTERN).permitAll()
@@ -86,8 +92,10 @@ public class SecurityConfiguration {
                         .failureHandler(failureHandler))
                 .logout(logout -> logout.logoutSuccessHandler(logoutSuccessHandler))
                 // SPA читает токен из cookie XSRF-TOKEN и отправляет его в заголовке X-XSRF-TOKEN;
-                // cookie ставится и без сессии, поэтому анонимные POST облигаций тоже защищены
-                .csrf(CsrfConfigurer::spa)
+                // cookie ставится и без сессии, поэтому анонимные POST облигаций тоже защищены.
+                // Webhook провайдера приходит не из браузера: токена у него нет, защищает подпись
+                .csrf(csrf -> csrf.spa().ignoringRequestMatchers(
+                        PathPatternRequestMatcher.pathPattern(HttpMethod.POST, PAYMENT_NOTIFICATIONS)))
                 // fetch из UI должен получить 401, а не HTML-страницу логина Keycloak после редиректа
                 .exceptionHandling(exceptions -> exceptions.defaultAuthenticationEntryPointFor(
                         new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED),

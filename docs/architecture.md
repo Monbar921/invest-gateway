@@ -34,12 +34,13 @@ Vite proxy, на стенде - ingress.
 | `/api/portfolio/**`              | то же для портфеля: `/internal/rest/portfolio/**`                         |
 | `/api/account/**`                | то же для тарифа пользователя: `/internal/rest/account/**` ([INVEST-001-plans](../../invest-api/docs/features/INVEST-001-plans/)) |
 | `GET /api/calendar/{токен}.ics`  | календарь выплат портфеля по личной ссылке: `/internal/rest/calendar/**`; без входа и независимо от публичного режима - пользователя определяет токен ([INVEST-001-payment-calendar](../../invest-api/docs/features/INVEST-001-payment-calendar/)) |
+| `POST /api/payments/notifications/{провайдер}` | webhook платёжного провайдера (Т-Касса): `/internal/rest/payments/notifications/**`; без входа, без CSRF-токена и вне лимита анонимных запросов - подлинность проверяет invest-api по подписи в теле ([INVEST-001-payments](../../invest-api/docs/features/INVEST-001-payments/)). Покупка, платежи и автопродление пользователя - под `/api/account/**`, только с сессией |
 | `GET /api/session`               | состояние входа для UI: `{authenticated, username}`, без авторизации, всегда `200` |
 | `GET /bonds`, `/bonds/{ticker}`, `/issuers/{id}`, `/collections/{slug}` | SEO-страницы: `index.html` UI с метаданными и готовым содержимым (см. ниже); без входа в публичном режиме |
 | `GET /sitemap.xml`, `GET /robots.txt` | sitemap всех облигаций, эмитентов и подборок; robots с адресом sitemap |
 | `/actuator/health`               | без авторизации                                                           |
 
-Наружу открыты облигации, уведомления, портфель и календарь по ссылке: maintenance-эндпоинты invest-api (`/internal/rest/maintenance/**`) через gateway
+Наружу открыты облигации, уведомления, портфель, тариф и оплата, календарь по ссылке и webhook оплаты: maintenance-эндпоинты invest-api (`/internal/rest/maintenance/**`) через gateway
 недоступны.
 
 ## Безопасность (`feature/authorization-service`)
@@ -48,7 +49,10 @@ Vite proxy, на стенде - ingress.
 
 - без входа открыты `/actuator/health`, `GET /api/session`, `GET`/`HEAD /api/calendar/*` (календарь выплат `.ics` по
   личной ссылке: Google, Apple, Outlook забирают его со своих серверов без cookie; токен проверяет invest-api,
-  открыт и без публичного режима - это не общие данные; входит в лимит анонимных запросов) и, в публичном режиме (`invest.gateway.public-access.enabled`,
+  открыт и без публичного режима - это не общие данные; входит в лимит анонимных запросов), `POST
+  /api/payments/notifications/*` (webhook Т-Кассы: открыт всегда, CSRF для него не проверяется - запрос не из
+  браузера, подпись проверяет invest-api; лимит анонимных запросов к нему не применяется - `429` провайдер повторял
+  бы, задерживая оплату) и, в публичном режиме (`invest.gateway.public-access.enabled`,
   по умолчанию включён), чтение облигаций: `GET`/`HEAD /api/bonds/**`, `POST /api/bonds/*/page` и
   `POST /api/bonds/*/calculation` (POST - чтение с фильтрами в теле), `POST /api/bonds/*/broker-links/*/click` (учёт
   перехода к брокеру-партнёру, [INVEST-001-broker-referral](../../invest-api/docs/features/INVEST-001-broker-referral/));
@@ -106,7 +110,8 @@ ingress. Каждый новый адрес UI нужно добавить в re
   оболочкой без содержимого (SPA работает, поисковик не запоминает пустую страницу);
 - `SitemapController`: `sitemap.xml` по `GET /internal/rest/bonds/sitemap` (invest-api не ответил - `503` с
   `Retry-After`), `robots.txt` (личные разделы закрыты,
-  `/api/bonds` открыт - он нужен поисковику, исполняющему SPA; `/api/calendar` закрыт - личные ссылки);
+  `/api/bonds` открыт - он нужен поисковику, исполняющему SPA; `/api/calendar` закрыт - личные ссылки,
+  `/api/payments` - webhook);
 - абсолютные адреса - от `invest.gateway.seo.public-url`, если не задан - от запроса (`X-Forwarded-*`);
 - включается `invest.gateway.seo.enabled` и только вместе с `public-access.enabled`.
 

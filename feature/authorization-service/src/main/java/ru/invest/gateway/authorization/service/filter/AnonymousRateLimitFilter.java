@@ -38,6 +38,9 @@ public class AnonymousRateLimitFilter extends OncePerRequestFilter {
             {"type":"about:blank","title":"Too Many Requests","status":429,\
             "detail":"Слишком много запросов без входа. Подождите немного или войдите."}""";
 
+    private static final RequestMatcher PAYMENT_NOTIFICATIONS =
+            PathPatternRequestMatcher.pathPattern(SecurityConfiguration.PAYMENT_NOTIFICATIONS);
+
     private final AnonymousRateLimiter limiter;
 
     public AnonymousRateLimitFilter(final AnonymousRateLimiter limiter) {
@@ -46,7 +49,9 @@ public class AnonymousRateLimitFilter extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(final HttpServletRequest request) {
-        return !request.getRequestURI().startsWith(API_PREFIX) && !isPublicPage(request);
+        // webhook платёжного провайдера не ограничиваем: отказ 429 провайдер повторял бы, задерживая оплату
+        return !request.getRequestURI().startsWith(API_PREFIX) && !isPublicPage(request)
+                || PAYMENT_NOTIFICATIONS.matches(request);
     }
 
     @Override

@@ -13,6 +13,7 @@
 - [INVEST-001-public-mode](../../invest-api/docs/features/INVEST-001-public-mode/) - чтение облигаций без входа, `/api/session`, возврат после входа, лимит анонимных запросов
 - [INVEST-001-seo-pages](../../invest-api/docs/features/INVEST-001-seo-pages/) - SEO-страницы (модуль `seo-service`), `sitemap.xml`, `robots.txt`
 - [INVEST-001-plans](../../invest-api/docs/features/INVEST-001-plans/) - маршрут `/api/account/**` (тариф пользователя, только с сессией)
+- [INVEST-001-payments](../../invest-api/docs/features/INVEST-001-payments/) - webhook Т-Кассы `POST /api/payments/notifications/*` без входа и CSRF, вне лимита анонимных запросов; покупка - под `/api/account/**`
 
 Связанные проекты: [invest-api](../../invest-api/docs/), [invest-api-ui](../../invest-api-ui/docs/),
 [invest-deploy](../../invest-deploy/docs/).
