@@ -88,6 +88,16 @@ class SecurityConfigurationTest {
     }
 
     @Test
+    void bondExportRequiresLogin() throws Exception {
+        // выгрузка всей выборки скринера одним файлом - только после входа: гостю лимит запросов по IP не мешал бы
+        // выкачать все данные одним запросом
+        mockMvc.perform(withCsrf(post("/api/bonds/all/export").param("format", "CSV")))
+                .andExpect(status().isUnauthorized());
+        assertRoutedTo(withCsrf(post("/api/bonds/all/export").param("format", "CSV").with(oauth2Login())),
+                "/bonds/all/export");
+    }
+
+    @Test
     void brokerClickWithoutSessionIsRoutedToInvestApi() throws Exception {
         // учёт перехода к брокеру-партнёру: гость кликает так же, как вошедший
         assertRoutedTo(withCsrf(post("/api/bonds/RU000A0JX0J2/broker-links/alpha/click")),

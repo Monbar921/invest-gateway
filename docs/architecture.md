@@ -57,6 +57,9 @@ Vite proxy, на стенде - ingress.
   `POST /api/bonds/*/calculation` (POST - чтение с фильтрами в теле), `POST /api/bonds/*/broker-links/*/click` (учёт
   перехода к брокеру-партнёру, [INVEST-001-broker-referral](../../invest-api/docs/features/INVEST-001-broker-referral/));
   POST открыты поимённо, чтобы будущий изменяющий POST не стал публичным сам собой. Всё остальное, в том числе `/api/alerts/**`, `/api/portfolio/**` и `/api/account/**`, требует аутентификации.
+  Выгрузка выборки скринера `POST /api/bonds/*/export` (CSV / Excel) намеренно не открыта: один запрос отдаёт все
+  облигации, лимит анонимных запросов по IP от выкачивания не защитил бы
+  ([INVEST-001-screener-data](../../invest-api/docs/features/INVEST-001-screener-data/)).
   Error dispatch (`/error` после `sendError`) открыт - иначе гость вместо `403`/`404` получал бы `401`.
   Подробности и решения - [INVEST-001-public-mode](../../invest-api/docs/features/INVEST-001-public-mode/);
 - без сессии `/api/**` отвечает `401` (fetch из UI должен получить статус, а не HTML логина Keycloak),
